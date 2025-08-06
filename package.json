@@ -1,0 +1,8 @@
+{
+  "name": "ms-auth-fn",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@azure/msal-node": "^2.7.0"
+  }
+}
