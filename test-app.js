@@ -1,33 +1,37 @@
-const express = require('express');
+const http = require('http');
+const url = require('url');
+const querystring = require('querystring');
 const authHandler = require('./auth');
-const app = express();
 
-// Configure express to use query string parsing
-app.use(express.urlencoded({ extended: true }));
+const server = http.createServer(async (req, res) => {
+    const parsedUrl = url.parse(req.url, true);
+    const path = parsedUrl.pathname;
+    const query = parsedUrl.query;
 
-// Route to initiate login
-app.get('/login', async (req, res) => {
-    const result = await authHandler.login(req);
-    res.redirect(result.headers.Location);
-});
-
-// Callback route after authentication
-app.get('/auth-callback', async (req, res) => {
-    const result = await authHandler.callback(req);
-    
-    if (result.status === 400) {
-        res.status(400).send(result.body);
+    if (path === '/login') {
+        const result = await authHandler.login({ query });
+        res.writeHead(result.status, result.headers);
+        res.end();
+    } else if (path === '/auth-callback') {
+        const result = await authHandler.callback({ query });
+        
+        if (result.status === 400) {
+            res.writeHead(result.status, { 'Content-Type': 'text/plain' });
+            res.end(result.body);
+        } else {
+            res.writeHead(result.status, result.headers);
+            res.end('Authentication successful!');
+        }
+    } else if (path === '/') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end('<a href="/login">Login with Azure</a>');
     } else {
-        res.send('Authentication successful!');
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
     }
 });
 
-// Home route
-app.get('/', (req, res) => {
-    res.send('<a href="/login">Login with Azure</a>');
-});
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
