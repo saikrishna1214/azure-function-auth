@@ -18,9 +18,40 @@ const server = http.createServer(async (req, res) => {
         if (result.status === 400) {
             res.writeHead(result.status, { 'Content-Type': 'text/plain' });
             res.end(result.body);
+        } else if (result.status === 200) {
+            // Redirect to ServiceNow with token
+            const serviceNowUrl = 'https://firebender.service-now.com/now/my-tasks-planner/home';
+            res.writeHead(302, {
+                'Location': `${serviceNowUrl}`
+            });
+            res.end();
         } else {
-            res.writeHead(result.status, result.headers);
-            res.end('Authentication successful!');
+            res.writeHead(result.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+                status: 'error',
+                error: result.body 
+            }));
+        }
+    } else if (path === '/token') {
+        try {
+            const result = await authHandler.getToken();
+            
+            if (result.status === 200) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result.body));
+            } else {
+                res.writeHead(result.status, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                    status: 'error',
+                    error: result.body 
+                }));
+            }
+        } catch (error) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+                status: 'error',
+                error: error.message 
+            }));
         }
     } else if (path === '/') {
         res.writeHead(200, { 'Content-Type': 'text/html' });
