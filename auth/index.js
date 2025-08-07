@@ -10,25 +10,23 @@ const cca = new msal.ConfidentialClientApplication({
   }
 });
 
-module.exports = async function (context, req) {
-  const path = req.params.path;
-
-  if (path === 'login') {
+module.exports = {
+  login: async function (req) {
     const authUrl = await cca.getAuthCodeUrl({
       scopes: config.scopes,
       redirectUri: config.redirectUri
     });
-    context.res = {
+    return {
       status: 302,
       headers: {
         Location: authUrl
       }
     };
-  } else if (path === 'callback') {
+  },
+  callback: async function (req) {
     const code = req.query.code;
     if (!code) {
-      context.res = { status: 400, body: 'No code received' };
-      return;
+      return { status: 400, body: 'No code received' };
     }
 
     try {
@@ -38,7 +36,7 @@ module.exports = async function (context, req) {
         redirectUri: config.redirectUri
       });
 
-      context.res = {
+      return {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
         body: {
@@ -46,14 +44,8 @@ module.exports = async function (context, req) {
           expiresOn: tokenResponse.expiresOn
         }
       };
-    } catch (err) {
-      context.log('Token error:', err);
-      context.res = {
-        status: 500,
-        body: `Auth failed: ${err.message}`
-      };
+    } catch (error) {
+      return { status: 500, body: error.message };
     }
-  } else {
-    context.res = { status: 404, body: 'Route not found' };
   }
 };
